@@ -1,0 +1,6 @@
+{
+  "workspaces": [
+    "./packtrack-web",
+    "./packtrack-common"
+  ]
+}
