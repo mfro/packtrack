@@ -13,3 +13,10 @@
 
   overlap between item bundle & category
 
+- containers
+  bag is an item, contains other items
+
+  overlap with item bundles
+
+- sub-lists?
+  categories

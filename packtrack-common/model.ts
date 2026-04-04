@@ -14,6 +14,7 @@ export interface Item {
   label: string;
   weight?: number; // grams
   notes?: string;
+  category?: string;
 }
 
 export function newLibrary(): Library {

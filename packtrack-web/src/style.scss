@@ -6,6 +6,12 @@ $text-unit: 1rem;
   src: url('assets/fonts/OpenSans-Regular.ttf') format('truetype');
 }
 
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: bold;
+  src: url('assets/fonts/OpenSans-Bold.ttf') format('truetype');
+}
+
 :root {
   --text-primary: var(--p-text-color);
   --text-secondary: color-mix(in srgb, var(--p-text-color), var(--p-text-muted-color) 60%);
@@ -43,32 +49,6 @@ body {
   overscroll-behavior: none;
   padding: 0 !important;
   font-size: 14px;
-}
-
-#app {
-  height: 100svh;
-  max-height: 100svh;
-}
-
-@media (min-width: 60rem) {
-  body {
-    display: flex;
-    justify-content: center;
-    background-color: var(--p-highlight-background);
-  }
-
-  #app {
-    width: 60rem;
-    background-color: var(--p-content-background);
-  }
-
-  .p-drawer-bottom .p-drawer {
-    max-width: 60rem !important;
-  }
-
-  .p-dialog {
-    max-width: 60rem !important;
-  }
 }
 
 .p-drawer {
