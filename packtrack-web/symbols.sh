@@ -8,23 +8,9 @@ add_icon() {
 }
 
 rm "src/assets/symbols/index.ts"
-add_icon undo
+add_icon edit
 add_icon save
-add_icon chevron_left
-add_icon more_horiz
-add_icon add_notes
-add_icon visibility
-add_icon visibility_off
 add_icon delete
-add_icon add
-add_icon link
-add_icon person_add
-add_icon check
-add_icon copy_all
-add_icon attach_money
-add_icon event
-add_icon photo_camera
-add_icon person
-add_icon cloud_off
-add_icon arrow_downward
 add_icon close
+add_icon keyboard_arrow_up
+add_icon keyboard_arrow_down

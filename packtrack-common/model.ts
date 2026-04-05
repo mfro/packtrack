@@ -17,6 +17,18 @@ export interface Item {
   category?: string;
 }
 
+export interface List {
+  id: number;
+
+  label: string;
+  items: ListItem[];
+}
+
+export interface ListItem {
+  itemId: number;
+  count: number;
+}
+
 export function newLibrary(): Library {
   return {
     version: CURRENT_VERSION,

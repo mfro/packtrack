@@ -30,8 +30,7 @@
           <h3 v-if="category.name">{{ category.name }}</h3>
 
           <template v-for="item in category.items">
-            <Flex class="px-3 item" align-center>
-
+            <Flex class="px-2 item" align-center>
               <label :for="`item-${item.id}`"
                      class="item-checkbox">
                 <Checkbox :inputId="`item-${item.id}`" binary
@@ -39,30 +38,67 @@
                           @update:model-value="toggleSelected(item)" />
               </label>
 
-              <Flex class="px-3" align-center grow
-                    @click="startEdit(item)"
+              <Flex class="px-2 item-body" align-center grow
+                    @click="addItem(item)"
+                    @contextmenu.prevent="removeItem(item)"
                     @touchstart="() => { /* needed for mobile to show click effects */ }">
 
-                <span>{{ item.label }}</span>
-                <!-- <span v-if="item.category">{{ item.category }}</span>
-                <span v-else>&nbsp;</span> -->
-                <span v-if="item.weight">{{ item.weight }}g</span>
-                <span v-else>&nbsp;</span>
-                <span v-if="item.notes">{{ item.notes }}</span>
-                <span v-else>&nbsp;</span>
+                <span class="label">{{ item.label }}</span>
+                <span class="weight" v-if="item.weight">
+                  {{ item.weight }}g
+                </span>
+                <span class="weight" v-else>&nbsp;</span>
+                <span class="notes" v-if="item.notes">{{ item.notes }}</span>
+                <span class="notes" v-else>&nbsp;</span>
               </Flex>
+
+              <Button icon="a" severity="secondary" class="ml-2"
+                      @click="startEdit(item)">
+                <Icon :src="icon_edit" />
+              </Button>
             </Flex>
           </template>
         </template>
       </Flex>
 
-      <Flex grow column>
-        <template v-for="category in categories">
-          <Flex class="px-3 category" align-center>
-            <span>{{ category.name }}</span>
-            <span>{{ category.weight }}g</span>
-          </Flex>
-        </template>
+      <Flex grow column style="max-width: 60rem">
+        <InputText v-model="editList.label" />
+
+        <span class="ma-3">total: {{ listWeight }}g</span>
+
+        <Flex grow column>
+          <template v-for="category in listCategories">
+            <Flex align-baseline v-if="category.name">
+              <h3>{{ category.name }}</h3>
+
+              <span>{{ category.weight }}g</span>
+            </Flex>
+
+            <template v-for="{ item, count } in category.items">
+              <Flex class="px-2 item" align-center>
+                <Flex class="px-2 item-body" align-center grow
+                      @click="addItem(item)"
+                      @contextmenu.prevent="removeItem(item)"
+                      @touchstart="() => { /* needed for mobile to show click effects */ }">
+
+                  <span class="count">{{ count }}</span>
+                  <span class="label">{{ item.label }}</span>
+                  <span class="weight" v-if="item.weight">
+                    {{ item.weight }}g
+                  </span>
+                  <span class="weight" v-else>&nbsp;</span>
+                  <span class="notes" v-if="item.notes">{{ item.notes }}</span>
+                  <span class="notes" v-else>&nbsp;</span>
+                </Flex>
+
+                <Button icon="a" severity="secondary" class="ml-2"
+                        @click="startEdit(item)">
+                  <Icon :src="icon_edit" />
+                </Button>
+              </Flex>
+            </template>
+          </template>
+        </Flex>
       </Flex>
     </Flex>
 
@@ -86,10 +122,10 @@
 <script setup lang="ts">
 import { Button, Checkbox, Dialog, InputText, Select } from 'primevue';
 import { computed, shallowReactive, shallowRef } from 'vue';
-import { ADD_ITEM, assert, DELETE_ITEM, UPDATE_ITEM, type Item } from 'packtrack-common';
+import { ADD_ITEM, assert, DELETE_ITEM, UPDATE_ITEM, type List, type Item } from 'packtrack-common';
 import ItemEditor from './ui/ItemEditor.vue';
-import { library } from './localStorage';
-import { icon_close, icon_save } from './assets/symbols';
+import { library, persist } from './localStorage';
+import { icon_close, icon_edit, icon_keyboard_arrow_down, icon_keyboard_arrow_up, icon_save } from './assets/symbols';
 import Flex from './ui/Flex.vue';
 import Icon from './ui/Icon.vue';
 
@@ -98,11 +134,53 @@ const input = shallowRef('');
 const createItem = shallowRef<Item>();
 const editItem = shallowRef<Item>();
 
-const items = computed(() => {
-  return Object.values(library.items)
-    .sort((a, b) => (a.category ?? '').localeCompare(b.category ?? '')
-      || a.label.localeCompare(b.label))
-    .filter(a => a.label.toLowerCase().includes(input.value.toLowerCase()));
+const editList = persist<List>('mfro:packtrack:test-list', () => ({
+  id: library.nextId,
+  items: [],
+  label: 'New list',
+}));
+
+function addItem(item: Item) {
+  let entry = editList.items.find(e => e.itemId == item.id);
+  if (!entry) editList.items.push(entry = { itemId: item.id, count: 0 });
+
+  entry.count += 1;
+}
+
+function removeItem(item: Item) {
+  const index = editList.items.findIndex(e => e.itemId == item.id);
+  assert(index != -1, 'missing index');
+
+  const entry = editList.items[index]!;
+
+  entry.count -= 1;
+  if (entry.count === 0) {
+    editList.items.splice(index, 1);
+  }
+}
+
+const listWeight = computed(() => editList.items
+  .map(e => (library.items[e.itemId]!.weight ?? 0) * e.count)
+  .reduce((a, b) => a + b));
+
+const listCategories = computed(() => {
+  return [...new Set(editList.items
+    .map(i => library.items[i.itemId]!)
+    .map(i => i.category ?? ''))]
+    .sort((a, b) => a?.localeCompare(b))
+    .map(name => {
+      const items = editList.items
+        .map(i => ({ item: library.items[i.itemId]!, count: i.count }))
+        .filter(e => e.count > 0 && (e.item.category ?? '') == name)
+        .sort((a, b) => (a.item.category ?? '').localeCompare(b.item.category ?? '')
+          || a.item.label.localeCompare(b.item.label));
+
+      const weight = items
+        .map(e => (e.item.weight ?? 0) * e.count)
+        .reduce((a, b) => a + b);
+
+      return { name, items, weight };
+    })
 });
 
 const categories = computed(() => {
@@ -146,7 +224,7 @@ function toggleSelected(item: Item) {
 }
 
 function onSubmit(e: KeyboardEvent) {
-  if (e.ctrlKey) {
+  if (e.shiftKey) {
     createItem.value = {
       id: 0,
       label: input.value,
@@ -189,30 +267,77 @@ h3 {
   > label {
     cursor: pointer;
     width: var(--p-button-icon-only-width);
-    height: var(--p-button-icon-only-width);
+    height: 2rem;
     margin: -100px 0;
-    height: 2.25rem;
     display: flex;
     align-items: center;
     justify-content: center
   }
 
-  > :nth-child(2) {
-    height: 2.25rem;
-    padding: 0.5rem 0.5rem;
+  > button {
+    height: 2rem;
+    opacity: 0;
+    transition: opacity 80ms ease-in-out;
+  }
+
+  > .item-body {
+    min-height: 2rem;
+    // height: 2rem;
+    padding: 0 0.5rem;
     border-radius: var(--p-border-radius-md);
     @include interactive-list-item;
 
-    > span:nth-child(1) {
+    > .count {
+      flex: 0 0 3ch;
+      text-align: right;
+      margin-right: 1ch;
+      // position: relative;
+      // display: flex;
+      // justify-content: center;
+
+      // > * {
+      //   position: absolute;
+      //   left: 0;
+      //   right: 0;
+      //   text-align: center;
+      //   opacity: 0;
+      //   transition: opacity 80ms ease-in-out;
+      //   pointer-events: none;
+
+      //   &:nth-child(1) {
+      //     top: -65%;
+      //   }
+
+      //   &:nth-child(2) {
+      //     bottom: -65%;
+      //   }
+      // }
+    }
+
+    > .label {
       flex: 5 0 0;
     }
 
-    > span:nth-child(2) {
+    > .weight {
       flex: 2 0 0;
     }
 
-    > span:nth-child(3) {
+    > .notes {
       flex: 13 0 0;
+    }
+  }
+
+  @media (hover: hover) {
+    &:hover > button {
+      opacity: 1;
+    }
+
+    &:hover > .item-body:not(:hover):not(:active) {
+      background-color: var(--interactive-background-color);
+    }
+
+    &:hover > .item-body > .count > * {
+      opacity: 1;
     }
   }
 }
@@ -220,7 +345,7 @@ h3 {
 .category {
   max-width: 20rem;
 
-  height: 2.25rem;
+  height: 2rem;
   padding: 0.5rem 0.5rem;
   border-radius: var(--p-border-radius-md);
 

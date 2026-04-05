@@ -1,7 +1,7 @@
 import { ADD_ITEM, CURRENT_VERSION, DELETE_ITEM, deserialize, newLibrary, serialize, type Library } from 'packtrack-common';
 import { reactive, toRaw, watch } from 'vue';
 
-function persist<T extends object>(key: string, initializer: () => T) {
+export function persist<T extends object>(key: string, initializer: () => T) {
   let raw: T;
   try {
     const stored = window.localStorage.getItem(key);
