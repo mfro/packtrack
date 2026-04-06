@@ -8,9 +8,8 @@ add_icon() {
 }
 
 rm "src/assets/symbols/index.ts"
+add_icon add
 add_icon edit
 add_icon save
 add_icon delete
 add_icon close
-add_icon keyboard_arrow_up
-add_icon keyboard_arrow_down

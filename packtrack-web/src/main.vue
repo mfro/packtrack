@@ -1,27 +1,30 @@
 <template>
   <div class="app">
     <Flex class="gap-3 ma-3">
-      <InputText v-model="input" @keyup.enter="onSubmit"
-                 autofocus />
+      <Button @click="startAddItem()">
+        <Icon :src="icon_add" />
+        Add Item
+      </Button>
+    </Flex>
+
+    <Flex class="gap-3 ma-3">
+      <Button @click="selected.clear(), categoryValue = ''" icon="a" text
+              rounded
+              severity="secondary"
+              :disabled="!(selected.size || categoryValue)">
+        <Icon :src="icon_close" />
+      </Button>
 
       <Flex class="gap-3">
         <Select editable :options="categories.map(o => o.name)"
                 v-model="categoryValue" />
 
         <Button @click="applyCategory"
-                :disabled="!isValidCategory(categoryValue)">
+                :disabled="!isValidCategory(categoryValue) || !selected.size">
           <Icon :src="icon_save" />
           Save
         </Button>
       </Flex>
-    </Flex>
-
-    <Flex class="gap-3 ma-3">
-      <Button @click="selected.clear()" icon="a" text rounded
-              severity="secondary"
-              :disabled="!selected.size">
-        <Icon :src="icon_close" />
-      </Button>
     </Flex>
 
     <Flex>
@@ -53,7 +56,7 @@
               </Flex>
 
               <Button icon="a" severity="secondary" class="ml-2"
-                      @click="startEdit(item)">
+                      @click="startEditItem(item)">
                 <Icon :src="icon_edit" />
               </Button>
             </Flex>
@@ -62,43 +65,70 @@
       </Flex>
 
       <Flex grow column style="max-width: 60rem">
-        <InputText v-model="editList.label" />
+        <template v-if="editList">
+          <Flex class="gap-3" align-center>
+            <Button @click="selectList(undefined)" icon="a" text
+                    rounded
+                    severity="secondary" style="flex: 0 0 auto;">
+              <Icon :src="icon_close" />
+            </Button>
 
-        <span class="ma-3">total: {{ listWeight }}g</span>
+            <InputText v-model="editList.label" fluid />
+          </Flex>
 
-        <Flex grow column>
-          <template v-for="category in listCategories">
-            <Flex align-baseline v-if="category.name">
-              <h3>{{ category.name }}</h3>
+          <span class="ma-3">total: {{ listWeight }}g</span>
 
-              <span>{{ category.weight }}g</span>
-            </Flex>
+          <Flex grow column>
+            <template v-for="category in listCategories">
+              <Flex align-baseline v-if="category.name">
+                <h3>{{ category.name }}</h3>
 
-            <template v-for="{ item, count } in category.items">
-              <Flex class="px-2 item" align-center>
-                <Flex class="px-2 item-body" align-center grow
-                      @click="addItem(item)"
-                      @contextmenu.prevent="removeItem(item)"
-                      @touchstart="() => { /* needed for mobile to show click effects */ }">
+                <span>{{ category.weight }}g</span>
+              </Flex>
 
-                  <span class="count">{{ count }}</span>
-                  <span class="label">{{ item.label }}</span>
-                  <span class="weight" v-if="item.weight">
-                    {{ item.weight }}g
-                  </span>
-                  <span class="weight" v-else>&nbsp;</span>
-                  <span class="notes" v-if="item.notes">{{ item.notes }}</span>
-                  <span class="notes" v-else>&nbsp;</span>
+              <template v-for="{ item, count } in category.items">
+                <Flex class="px-2 item" align-center>
+                  <Flex class="px-2 item-body" align-center grow
+                        @click="addItem(item)"
+                        @contextmenu.prevent="removeItem(item)"
+                        @touchstart="() => { /* needed for mobile to show click effects */ }">
+
+                    <span class="count">{{ count }}</span>
+                    <span class="label">{{ item.label }}</span>
+                    <span class="weight" v-if="item.weight">
+                      {{ item.weight }}g
+                    </span>
+                    <span class="weight" v-else>&nbsp;</span>
+                    <span class="notes" v-if="item.notes">{{ item.notes
+                      }}</span>
+                    <span class="notes" v-else>&nbsp;</span>
+                  </Flex>
+
+                  <Button icon="a" severity="secondary" class="ml-2"
+                          @click="startEditItem(item)">
+                    <Icon :src="icon_edit" />
+                  </Button>
                 </Flex>
+              </template>
+            </template>
+          </Flex>
+        </template>
 
-                <Button icon="a" severity="secondary" class="ml-2"
-                        @click="startEdit(item)">
-                  <Icon :src="icon_edit" />
-                </Button>
+        <template v-else>
+          <Flex grow column>
+            <template v-for="entry in lists">
+              <Flex class="list" column
+                    @click="selectList(entry.list)"
+                    @touchstart="() => { /* needed for mobile to show click effects */ }">
+
+                <h2 class="label">{{ entry.list.label }}</h2>
+                <span class="weight" v-if="entry.weight">
+                  {{ entry.weight }}g
+                </span>
               </Flex>
             </template>
-          </template>
-        </Flex>
+          </Flex>
+        </template>
       </Flex>
     </Flex>
 
@@ -121,11 +151,11 @@
 
 <script setup lang="ts">
 import { Button, Checkbox, Dialog, InputText, Select } from 'primevue';
-import { computed, shallowReactive, shallowRef } from 'vue';
-import { ADD_ITEM, assert, DELETE_ITEM, UPDATE_ITEM, type List, type Item } from 'packtrack-common';
+import { computed, ref, shallowReactive, shallowRef } from 'vue';
+import { ADD_ITEM, assert, DELETE_ITEM, UPDATE_ITEM, type List, type Item, clone, ADD_LIST_ITEM, REMOVE_LIST_ITEM } from 'packtrack-common';
 import ItemEditor from './ui/ItemEditor.vue';
 import { library, persist } from './localStorage';
-import { icon_close, icon_edit, icon_keyboard_arrow_down, icon_keyboard_arrow_up, icon_save } from './assets/symbols';
+import { icon_add, icon_close, icon_edit, icon_save } from './assets/symbols';
 import Flex from './ui/Flex.vue';
 import Icon from './ui/Icon.vue';
 
@@ -134,42 +164,46 @@ const input = shallowRef('');
 const createItem = shallowRef<Item>();
 const editItem = shallowRef<Item>();
 
-const editList = persist<List>('mfro:packtrack:test-list', () => ({
-  id: library.nextId,
-  items: [],
-  label: 'New list',
-}));
+const editList = ref<List>();
 
 function addItem(item: Item) {
-  let entry = editList.items.find(e => e.itemId == item.id);
-  if (!entry) editList.items.push(entry = { itemId: item.id, count: 0 });
-
-  entry.count += 1;
+  assert(!!editList.value, 'invalid add item');
+  ADD_LIST_ITEM.impl(library, editList.value.id, item.id);
 }
 
 function removeItem(item: Item) {
-  const index = editList.items.findIndex(e => e.itemId == item.id);
-  assert(index != -1, 'missing index');
-
-  const entry = editList.items[index]!;
-
-  entry.count -= 1;
-  if (entry.count === 0) {
-    editList.items.splice(index, 1);
-  }
+  assert(!!editList.value, 'invalid add item');
+  REMOVE_LIST_ITEM.impl(library, editList.value.id, item.id);
 }
 
-const listWeight = computed(() => editList.items
-  .map(e => (library.items[e.itemId]!.weight ?? 0) * e.count)
-  .reduce((a, b) => a + b));
+function selectList(list: List | undefined) {
+  editList.value = list;
+}
+
+function getListWeight(list: List) {
+  const weight = list.items
+    .map(e => (library.items[e.itemId]!.weight ?? 0) * e.count)
+    .reduce((a, b) => a + b);
+
+  return weight;
+}
+
+const lists = computed(() => Object.values(library.lists)
+  .map(list => {
+    const weight = getListWeight(list);
+
+    return { list, weight };
+  }));
+
+const listWeight = computed(() => editList.value && getListWeight(editList.value));
 
 const listCategories = computed(() => {
-  return [...new Set(editList.items
+  return editList.value && [...new Set(editList.value.items
     .map(i => library.items[i.itemId]!)
     .map(i => i.category ?? ''))]
     .sort((a, b) => a?.localeCompare(b))
     .map(name => {
-      const items = editList.items
+      const items = editList.value!.items
         .map(i => ({ item: library.items[i.itemId]!, count: i.count }))
         .filter(e => e.count > 0 && (e.item.category ?? '') == name)
         .sort((a, b) => (a.item.category ?? '').localeCompare(b.item.category ?? '')
@@ -208,11 +242,13 @@ function isValidCategory(category: string) {
 
 function applyCategory() {
   for (const item of selected) {
+    const update = clone(item);
     if (!categoryValue.value) {
-      delete item.category;
+      delete update.category;
     } else {
-      item.category = categoryValue.value;
+      update.category = categoryValue.value;
     }
+    UPDATE_ITEM.impl(library, update);
   }
 }
 
@@ -223,18 +259,14 @@ function toggleSelected(item: Item) {
   }
 }
 
-function onSubmit(e: KeyboardEvent) {
-  if (e.shiftKey) {
-    createItem.value = {
-      id: 0,
-      label: input.value,
-    };
-
-    input.value = ''
-  }
+function startAddItem() {
+  createItem.value = {
+    id: 0,
+    label: input.value,
+  };
 }
 
-function startEdit(item: Item) {
+function startEditItem(item: Item) {
   editItem.value = item;
 }
 
@@ -342,18 +374,17 @@ h3 {
   }
 }
 
-.category {
-  max-width: 20rem;
-
-  height: 2rem;
-  padding: 0.5rem 0.5rem;
+.list {
+  padding: 0.5rem 0.75rem;
   border-radius: var(--p-border-radius-md);
+  @include interactive-list-item;
 
-  > span:nth-child(1) {
+  > .label {
     flex: 4 0 0;
+
   }
 
-  > span:nth-child(2) {
+  > .weight {
     flex: 3 0 0;
   }
 }

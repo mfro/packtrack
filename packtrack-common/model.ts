@@ -1,4 +1,3 @@
-import { CURRENT_VERSION } from '.';
 import { clone } from './serialize';
 import { assert } from './util';
 
@@ -7,6 +6,7 @@ export interface Library {
 
   nextId: number;
   items: { [id: number]: Item };
+  lists: { [id: number]: List };
 }
 
 export interface Item {
@@ -27,15 +27,6 @@ export interface List {
 export interface ListItem {
   itemId: number;
   count: number;
-}
-
-export function newLibrary(): Library {
-  return {
-    version: CURRENT_VERSION,
-
-    nextId: 1,
-    items: {},
-  };
 }
 
 export function isValidItem(item: Item) {
@@ -83,4 +74,42 @@ export const DELETE_ITEM = define('DELETE_ITEM', (library, id: number) => {
   assert(id in library.items, 'invalid delete item');
 
   delete library.items[id];
+});
+
+export const ADD_LIST = define('ADD_LIST', (library, list: List) => {
+  const id = library.nextId++;
+
+  library.lists[id] = {
+    ...clone(list),
+    id,
+  };
+});
+
+export const ADD_LIST_ITEM = define('ADD_LIST_ITEM', (library, listId: number, itemId: number) => {
+  assert(listId in library.lists, 'invalid add list item list');
+  assert(itemId in library.items, 'invalid add list item item');
+
+  const list = library.lists[listId]!;
+
+  let entry = list.items.find(e => e.itemId == itemId);
+  if (!entry) list.items.push(entry = { itemId: itemId, count: 0 });
+
+  entry.count += 1;
+});
+
+export const REMOVE_LIST_ITEM = define('REMOVE_LIST_ITEM', (library, listId: number, itemId: number) => {
+  assert(listId in library.lists, 'invalid add list item list');
+  assert(itemId in library.items, 'invalid add list item item');
+
+  const list = library.lists[listId]!;
+
+  const index = list.items.findIndex(e => e.itemId == itemId);
+  assert(index != -1, 'missing index');
+
+  const entry = list.items[index]!;
+
+  entry.count -= 1;
+  if (entry.count === 0) {
+    list.items.splice(index, 1);
+  }
 });
