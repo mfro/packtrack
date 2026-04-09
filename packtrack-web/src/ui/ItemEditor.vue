@@ -44,7 +44,7 @@ import { clone, isValidItem, type Item } from 'packtrack-common'
 import { icon_delete, icon_save } from '@/assets/symbols';
 import Flex from './Flex.vue';
 import Icon from './Icon.vue';
-import { computed, reactive } from 'vue';
+import { computed, reactive, watchEffect } from 'vue';
 
 const props = defineProps<{
   modelValue: Item,
@@ -70,6 +70,9 @@ function doDelete() {
 function onSubmit(e: KeyboardEvent) {
   save();
 }
+
+watchEffect(() => { if (!newItem.weight) delete newItem.weight; });
+watchEffect(() => { if (!newItem.notes) delete newItem.notes; });
 </script>
 
 <style scoped lang="scss"></style>

@@ -13,3 +13,6 @@ add_icon edit
 add_icon save
 add_icon delete
 add_icon close
+add_icon chevron_left
+add_icon visibility
+add_icon visibility_off

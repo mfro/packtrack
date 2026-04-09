@@ -4,11 +4,11 @@
 
   @media (hover: hover) {
     &:hover {
-      background-color: var(--interactive-hover-color);
+      background-color: var(--interactive-hover-color) !important;
     }
   }
 
   &:active {
-    background-color: var(--interactive-active-color)
+    background-color: var(--interactive-active-color) !important;
   }
 }

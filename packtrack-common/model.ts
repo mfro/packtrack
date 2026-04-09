@@ -21,6 +21,8 @@ export interface List {
   id: number;
 
   label: string;
+  notes?: string;
+
   items: ListItem[];
 }
 
@@ -56,6 +58,10 @@ function define<A extends unknown[]>(name: string, impl: (library: Library, ...a
 export const ADD_ITEM = define('ADD_ITEM', (library, item: Item) => {
   const id = library.nextId++;
 
+  if (!item.category) delete item.category;
+  if (!item.notes) delete item.notes;
+  if (!item.weight) delete item.weight;
+
   library.items[id] = {
     ...clone(item),
     id,
@@ -65,15 +71,19 @@ export const ADD_ITEM = define('ADD_ITEM', (library, item: Item) => {
 export const UPDATE_ITEM = define('UPDATE_ITEM', (library, item: Item) => {
   assert(item.id in library.items, 'invalid update item');
 
+  if (!item.category) delete item.category;
+  if (!item.notes) delete item.notes;
+  if (!item.weight) delete item.weight;
+
   library.items[item.id] = {
     ...clone(item),
   };
 });
 
-export const DELETE_ITEM = define('DELETE_ITEM', (library, id: number) => {
-  assert(id in library.items, 'invalid delete item');
+export const DELETE_ITEM = define('DELETE_ITEM', (library, itemId: number) => {
+  assert(itemId in library.items, 'invalid delete item');
 
-  delete library.items[id];
+  delete library.items[itemId];
 });
 
 export const ADD_LIST = define('ADD_LIST', (library, list: List) => {
@@ -112,4 +122,10 @@ export const REMOVE_LIST_ITEM = define('REMOVE_LIST_ITEM', (library, listId: num
   if (entry.count === 0) {
     list.items.splice(index, 1);
   }
+});
+
+export const DELETE_LIST = define('DELETE_LIST', (library, listId: number) => {
+  assert(listId in library.lists, 'invalid delete list');
+
+  delete library.lists[listId];
 });

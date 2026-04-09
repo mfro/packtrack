@@ -3,3 +3,6 @@ export { default as icon_edit } from './edit.svg?raw';
 export { default as icon_save } from './save.svg?raw';
 export { default as icon_delete } from './delete.svg?raw';
 export { default as icon_close } from './close.svg?raw';
+export { default as icon_chevron_left } from './chevron_left.svg?raw';
+export { default as icon_visibility } from './visibility.svg?raw';
+export { default as icon_visibility_off } from './visibility_off.svg?raw';

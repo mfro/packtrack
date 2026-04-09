@@ -1,39 +1,49 @@
 <template>
   <div class="app">
-    <Flex class="gap-3 ma-3">
-      <Button @click="startAddItem()">
-        <Icon :src="icon_add" />
-        Add Item
-      </Button>
-    </Flex>
-
-    <Flex class="gap-3 ma-3">
-      <Button @click="selected.clear(), categoryValue = ''" icon="a" text
-              rounded
-              severity="secondary"
-              :disabled="!(selected.size || categoryValue)">
-        <Icon :src="icon_close" />
-      </Button>
-
-      <Flex class="gap-3">
-        <Select editable :options="categories.map(o => o.name)"
-                v-model="categoryValue" />
-
-        <Button @click="applyCategory"
-                :disabled="!isValidCategory(categoryValue) || !selected.size">
-          <Icon :src="icon_save" />
-          Save
-        </Button>
-      </Flex>
-    </Flex>
-
     <Flex>
-      <Flex grow column style="max-width: 60rem">
+      <Flex column style="flex: 0 0 60rem">
+        <Flex class="gap-3 ma-3">
+          <Button @click="startAddItem()">
+            <Icon :src="icon_add" />
+            Add Item
+          </Button>
+
+          <ToggleButton v-model="showUsedItems">
+            <Icon
+                  :src="showUsedItems ? icon_visibility : icon_visibility_off" />
+            Used Items
+          </ToggleButton>
+        </Flex>
+
+        <Flex class="gap-3 ma-3">
+          <Button @click="selected.clear(), categoryValue = ''" icon="a" text
+                  rounded
+                  severity="secondary"
+                  :disabled="!(selected.size || categoryValue)">
+            <Icon :src="icon_close" />
+          </Button>
+
+          <template v-if="selected.size">
+            <Flex class="gap-3">
+              <Select editable :options="categories.map(o => o.name)"
+                      v-model="categoryValue" />
+
+              <Button @click="applyCategory"
+                      :disabled="!isValidCategory(categoryValue) || !selected.size">
+                <Icon :src="icon_save" />
+                Save
+              </Button>
+            </Flex>
+          </template>
+        </Flex>
+
         <template v-for="category in categories">
           <h3 v-if="category.name">{{ category.name }}</h3>
 
           <template v-for="item in category.items">
-            <Flex class="px-2 item" align-center>
+            <Flex class="px-2 item" :class="{ active: !!editList }"
+                  align-center>
+
               <label :for="`item-${item.id}`"
                      class="item-checkbox">
                 <Checkbox :inputId="`item-${item.id}`" binary
@@ -64,19 +74,43 @@
         </template>
       </Flex>
 
-      <Flex grow column style="max-width: 60rem">
+      <Flex column style="flex: 0 0 60rem" class="gap-3 my-3">
         <template v-if="editList">
-          <Flex class="gap-3" align-center>
-            <Button @click="selectList(undefined)" icon="a" text
-                    rounded
-                    severity="secondary" style="flex: 0 0 auto;">
-              <Icon :src="icon_close" />
+          <Flex class="gap-3">
+            <Button type="button"
+                    @click="e => addListMenu?.toggle(e)">
+
+              <Icon :src="icon_add"
+                    style="margin: -10em 0" />
+              Include List
             </Button>
 
+            <Menu ref="addListMenu" id="overlay_menu"
+                  :model="addListOptions"
+                  :popup="true" />
+
+            <Flex grow />
+
+            <Button @click="deleteList" severity="danger">
+              <Icon :src="icon_delete" />
+              Delete
+            </Button>
+          </Flex>
+
+          <Flex class="gap-3" align-center>
+            <Button @click="selectList(undefined)" icon="a" text rounded
+                    severity="secondary" style="flex: 0 0 auto;">
+              <Icon :src="icon_chevron_left" />
+            </Button>
+
+            <!-- TODO: fix this direct modification -->
             <InputText v-model="editList.label" fluid />
           </Flex>
 
-          <span class="ma-3">total: {{ listWeight }}g</span>
+          <!-- TODO: fix this direct modification -->
+          <Textarea v-model="editList.notes" auto-resize />
+
+          <span>total: {{ listWeight }}g</span>
 
           <Flex grow column>
             <template v-for="category in listCategories">
@@ -87,7 +121,7 @@
               </Flex>
 
               <template v-for="{ item, count } in category.items">
-                <Flex class="px-2 item" align-center>
+                <Flex class="px-2 item active" align-center>
                   <Flex class="px-2 item-body" align-center grow
                         @click="addItem(item)"
                         @contextmenu.prevent="removeItem(item)"
@@ -100,7 +134,7 @@
                     </span>
                     <span class="weight" v-else>&nbsp;</span>
                     <span class="notes" v-if="item.notes">{{ item.notes
-                      }}</span>
+                    }}</span>
                     <span class="notes" v-else>&nbsp;</span>
                   </Flex>
 
@@ -115,18 +149,30 @@
         </template>
 
         <template v-else>
-          <Flex grow column>
-            <template v-for="entry in lists">
-              <Flex class="list" column
-                    @click="selectList(entry.list)"
-                    @touchstart="() => { /* needed for mobile to show click effects */ }">
+          <Flex grow column class="gap-3">
+            <Flex class="gap-3">
+              <Button type="button"
+                      @click="startAddList">
 
-                <h2 class="label">{{ entry.list.label }}</h2>
-                <span class="weight" v-if="entry.weight">
-                  {{ entry.weight }}g
-                </span>
-              </Flex>
-            </template>
+                <Icon :src="icon_add"
+                      style="margin: -10em 0" />
+                Add List
+              </Button>
+            </Flex>
+
+            <Flex grow column>
+              <template v-for="entry in lists">
+                <Flex class="list" column
+                      @click="selectList(entry.list)"
+                      @touchstart="() => { /* needed for mobile to show click effects */ }">
+
+                  <h2 class="label">{{ entry.list.label }}</h2>
+                  <span class="weight" v-if="entry.weight">
+                    {{ entry.weight }}g
+                  </span>
+                </Flex>
+              </template>
+            </Flex>
           </Flex>
         </template>
       </Flex>
@@ -150,16 +196,28 @@
 </template>
 
 <script setup lang="ts">
-import { Button, Checkbox, Dialog, InputText, Select } from 'primevue';
-import { computed, ref, shallowReactive, shallowRef } from 'vue';
-import { ADD_ITEM, assert, DELETE_ITEM, UPDATE_ITEM, type List, type Item, clone, ADD_LIST_ITEM, REMOVE_LIST_ITEM } from 'packtrack-common';
+import { Button, Checkbox, Dialog, InputText, Menu, Select, Textarea, ToggleButton } from 'primevue';
+import type { MenuItem } from 'primevue/menuitem';
+import { computed, ref, shallowReactive, shallowRef, useTemplateRef } from 'vue';
+import { ADD_ITEM, assert, DELETE_ITEM, UPDATE_ITEM, type List, type Item, clone, ADD_LIST_ITEM, REMOVE_LIST_ITEM, ADD_LIST, DELETE_LIST } from 'packtrack-common';
 import ItemEditor from './ui/ItemEditor.vue';
-import { library, persist } from './localStorage';
-import { icon_add, icon_close, icon_edit, icon_save } from './assets/symbols';
+import { library } from './localStorage';
+import { icon_add, icon_chevron_left, icon_close, icon_delete, icon_edit, icon_save, icon_visibility, icon_visibility_off } from './assets/symbols';
 import Flex from './ui/Flex.vue';
 import Icon from './ui/Icon.vue';
 
-const input = shallowRef('');
+const showUsedItems = shallowRef(false);
+const addListMenu = useTemplateRef('addListMenu');
+
+const addListOptions = computed<MenuItem[]>(() => {
+  if (!editList.value) return [];
+  return Object.values(library.lists)
+    .filter(l => l != editList.value)
+    .map(v => ({
+      label: v.label,
+      command: () => includeList(v),
+    }));
+})
 
 const createItem = shallowRef<Item>();
 const editItem = shallowRef<Item>();
@@ -172,18 +230,34 @@ function addItem(item: Item) {
 }
 
 function removeItem(item: Item) {
-  assert(!!editList.value, 'invalid add item');
+  assert(!!editList.value, 'invalid remove item');
   REMOVE_LIST_ITEM.impl(library, editList.value.id, item.id);
+}
+
+function includeList(list: List) {
+  assert(!!editList.value, 'invalid include list');
+  // TODO optimize this
+  for (const entry of list.items) {
+    for (let i = 0; i < entry.count; ++i) {
+      ADD_LIST_ITEM.impl(library, editList.value.id, entry.itemId);
+    }
+  }
 }
 
 function selectList(list: List | undefined) {
   editList.value = list;
 }
 
+function deleteList() {
+  assert(!!editList.value, 'invalid delete list');
+  DELETE_LIST.impl(library, editList.value.id);
+  editList.value = undefined;
+}
+
 function getListWeight(list: List) {
   const weight = list.items
     .map(e => (library.items[e.itemId]!.weight ?? 0) * e.count)
-    .reduce((a, b) => a + b);
+    .reduce((a, b) => a + b, 0);
 
   return weight;
 }
@@ -211,25 +285,28 @@ const listCategories = computed(() => {
 
       const weight = items
         .map(e => (e.item.weight ?? 0) * e.count)
-        .reduce((a, b) => a + b);
+        .reduce((a, b) => a + b, 0);
 
       return { name, items, weight };
     })
 });
 
+const visibleItems = computed(() => Object.values(library.items)
+  .filter(i => showUsedItems.value || !editList.value || !editList.value.items.some(e => e.itemId == i.id)));
+
 const categories = computed(() => {
-  return [...new Set(Object.values(library.items)
+  return [...new Set(visibleItems.value
     .map(i => i.category ?? ''))]
     .sort((a, b) => a?.localeCompare(b))
     .map(name => {
-      const items = Object.values(library.items)
+      const items = visibleItems.value
         .filter(i => (i.category ?? '') == name)
         .sort((a, b) => (a.category ?? '').localeCompare(b.category ?? '')
           || a.label.localeCompare(b.label));
 
       const weight = items
         .map(i => i.weight ?? 0)
-        .reduce((a, b) => a + b);
+        .reduce((a, b) => a + b, 0);
 
       return { name, items, weight };
     })
@@ -262,7 +339,7 @@ function toggleSelected(item: Item) {
 function startAddItem() {
   createItem.value = {
     id: 0,
-    label: input.value,
+    label: '',
   };
 }
 
@@ -285,6 +362,20 @@ function deleteItem() {
 
   DELETE_ITEM.impl(library, editItem.value.id);
   editItem.value = undefined;
+}
+
+function startAddList() {
+  const now = new Date();
+
+  const id = library.nextId;
+
+  ADD_LIST.impl(library, {
+    id: 0,
+    label: `${now.getFullYear()}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`,
+    items: [],
+  });
+
+  editList.value = library.lists[id];
 }
 </script>
 
@@ -317,33 +408,11 @@ h3 {
     // height: 2rem;
     padding: 0 0.5rem;
     border-radius: var(--p-border-radius-md);
-    @include interactive-list-item;
 
     > .count {
       flex: 0 0 3ch;
       text-align: right;
       margin-right: 1ch;
-      // position: relative;
-      // display: flex;
-      // justify-content: center;
-
-      // > * {
-      //   position: absolute;
-      //   left: 0;
-      //   right: 0;
-      //   text-align: center;
-      //   opacity: 0;
-      //   transition: opacity 80ms ease-in-out;
-      //   pointer-events: none;
-
-      //   &:nth-child(1) {
-      //     top: -65%;
-      //   }
-
-      //   &:nth-child(2) {
-      //     bottom: -65%;
-      //   }
-      // }
     }
 
     > .label {
@@ -359,17 +428,17 @@ h3 {
     }
   }
 
+  &.active > .item-body {
+    @include interactive-list-item;
+  }
+
   @media (hover: hover) {
     &:hover > button {
       opacity: 1;
     }
 
-    &:hover > .item-body:not(:hover):not(:active) {
+    &:hover > .item-body {
       background-color: var(--interactive-background-color);
-    }
-
-    &:hover > .item-body > .count > * {
-      opacity: 1;
     }
   }
 }
