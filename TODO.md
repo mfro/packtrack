@@ -1,6 +1,6 @@
 - search items
 
-- undo
+- service-side persistence
 
 - item bundles
   a bundle of items that can be added together

@@ -1,7 +1,37 @@
-import { deserialize, migrate, newLibrary, serialize, type Library } from 'packtrack-common';
-import { reactive, toRaw, watch } from 'vue';
+import { CURRENT_VERSION, deserialize, newLibrary, serialize, type Item, type Library, type List } from 'packtrack-common';
+import { ref, toRaw, watch } from 'vue';
 
-export function persist<T extends object>(key: string, initializer: () => T) {
+export interface GlobalState {
+  version: number,
+  library: Library,
+
+  editList: List | null,
+  editItem: Item | null,
+  createItem: Item | null,
+  selectedItems: Set<Item>,
+
+  showUsedItems: boolean,
+  inputCategory: string,
+}
+
+function newGlobalState(): GlobalState {
+  const oldLibrary = load<Library | null>('mfro:packtrack:library', () => null);
+
+  const library = oldLibrary ?? newLibrary();
+
+  return {
+    version: CURRENT_VERSION,
+    library,
+    editList: null,
+    editItem: null,
+    createItem: null,
+    selectedItems: new Set(),
+    showUsedItems: true,
+    inputCategory: '',
+  };
+}
+
+function load<T>(key: string, initializer: () => T): T {
   let raw: T;
   try {
     const stored = window.localStorage.getItem(key);
@@ -14,16 +44,21 @@ export function persist<T extends object>(key: string, initializer: () => T) {
     raw = initializer();
   }
 
-  const value = reactive(raw);
-
-  watch(value, () => {
-    window.localStorage.setItem(key, JSON.stringify(serialize(toRaw(value))));
-  });
-
-  return value;
+  return raw;
 }
 
-export const library = persist<Library>('mfro:packtrack:library', newLibrary);
-migrate(library);
+function save<T>(key: string, value: T) {
+  window.localStorage.setItem(key, JSON.stringify(serialize(toRaw(value))));
+}
 
-Object.assign(window, { library });
+const key = 'mfro:packtrack:state';
+export const state = ref<GlobalState>(load(key, newGlobalState));
+watch(state, value => save(key, value), { deep: true });
+
+Object.assign(window, { state });
+
+if (state.value.version == 1) {
+  state.value.selectedItems = new Set();
+}
+
+state.value.version = CURRENT_VERSION;

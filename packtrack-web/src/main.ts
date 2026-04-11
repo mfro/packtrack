@@ -1,10 +1,12 @@
 import { createApp } from 'vue';
 import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
+import { definePreset } from '@primeuix/themes';
 
 import App from '@/main.vue';
 import './style.scss';
-import { definePreset } from '@primeuix/themes';
+
+import { redo, undo } from './driver';
 
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-pwa/client" />
@@ -53,3 +55,19 @@ app.use(PrimeVue, {
   },
 });
 app.mount('#app');
+
+window.addEventListener('keydown', function (evt) {
+  if (evt.key === 'z' && (evt.ctrlKey || evt.metaKey) && evt.shiftKey) {
+    evt.stopImmediatePropagation();
+    evt.preventDefault();
+    redo();
+  } else if (evt.key === 'y' && (evt.ctrlKey || evt.metaKey)) {
+    evt.stopImmediatePropagation();
+    evt.preventDefault();
+    redo();
+  } else if (evt.key === 'z' && (evt.ctrlKey || evt.metaKey)) {
+    evt.stopImmediatePropagation();
+    evt.preventDefault();
+    undo();
+  }
+});

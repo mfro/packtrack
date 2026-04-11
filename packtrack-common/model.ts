@@ -2,8 +2,6 @@ import { clone } from './serialize';
 import { assert } from './util';
 
 export interface Library {
-  version: number;
-
   nextId: number;
   items: { [id: number]: Item };
   lists: { [id: number]: List };
