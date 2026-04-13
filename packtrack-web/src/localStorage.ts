@@ -10,6 +10,9 @@ export interface GlobalState {
   createItem: Item | null,
   selectedItems: Set<Item>,
 
+  inputQuickItem: string | null,
+  inputQuickItemTarget: Item | null,
+
   showUsedItems: boolean,
   inputCategory: string,
 }
@@ -26,6 +29,8 @@ function newGlobalState(): GlobalState {
     editItem: null,
     createItem: null,
     selectedItems: new Set(),
+    inputQuickItem: '',
+    inputQuickItemTarget: null,
     showUsedItems: true,
     inputCategory: '',
   };
@@ -57,8 +62,13 @@ watch(state, value => save(key, value), { deep: true });
 
 Object.assign(window, { state });
 
-if (state.value.version == 1) {
+if (state.value.version < 2) {
   state.value.selectedItems = new Set();
+}
+
+if (state.value.version < 3) {
+  state.value.inputQuickItem = null;
+  state.value.inputQuickItemTarget = null;
 }
 
 state.value.version = CURRENT_VERSION;

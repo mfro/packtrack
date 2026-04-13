@@ -7,6 +7,7 @@ import App from '@/main.vue';
 import './style.scss';
 
 import { redo, undo } from './driver';
+import { state } from './localStorage';
 
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-pwa/client" />
@@ -69,5 +70,15 @@ window.addEventListener('keydown', function (evt) {
     evt.stopImmediatePropagation();
     evt.preventDefault();
     undo();
+  } else if (evt.key === 'p' && (evt.ctrlKey || evt.metaKey)) {
+    evt.stopImmediatePropagation();
+    evt.preventDefault();
+
+    if (state.value.editList
+      && !state.value.editItem
+      && !state.value.createItem
+    ) {
+      state.value.inputQuickItem = '';
+    }
   }
 });

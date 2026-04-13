@@ -4,7 +4,7 @@ export * from './util';
 export * from './serialize';
 export * from './model';
 
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 3;
 
 export function newLibrary(): Library {
   return {

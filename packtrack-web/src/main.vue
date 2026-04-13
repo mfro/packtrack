@@ -1,8 +1,8 @@
 <template>
   <div class="app">
     <Flex>
-      <Flex column style="flex: 0 0 60rem">
-        <Flex class="gap-3 ma-3">
+      <Flex column class="gap-3 my-3" style="flex: 0 0 60rem">
+        <Flex class="gap-3 mx-3">
           <Button @click="startAddItem()">
             <Icon :src="icon_add" />
             Add Item
@@ -15,8 +15,9 @@
           </ToggleButton>
         </Flex>
 
-        <Flex class="gap-3 ma-3">
-          <Button @click="state.selectedItems.clear(), state.inputCategory = ''" icon="a"
+        <Flex class="gap-3 mx-3">
+          <Button @click="state.selectedItems.clear(), state.inputCategory = ''"
+                  icon="a"
                   text
                   rounded
                   severity="secondary"
@@ -38,41 +39,43 @@
           </template>
         </Flex>
 
-        <template v-for="category in categories">
-          <h3 v-if="category.name">{{ category.name }}</h3>
+        <Flex column>
+          <template v-for="category in categories">
+            <h3 v-if="category.name">{{ category.name }}</h3>
 
-          <template v-for="item in category.items">
-            <Flex class="px-2 item" :class="{ active: !!state.editList }"
-                  align-center>
+            <template v-for="item in category.items">
+              <Flex class="px-2 item" :class="{ active: !!state.editList }"
+                    align-center>
 
-              <label :for="`item-${item.id}`"
-                     class="item-checkbox">
-                <Checkbox :inputId="`item-${item.id}`" binary
-                          :model-value="state.selectedItems.has(item)"
-                          @update:model-value="toggleSelected(item)" />
-              </label>
+                <label :for="`item-${item.id}`"
+                       class="item-checkbox">
+                  <Checkbox :inputId="`item-${item.id}`" binary
+                            :model-value="state.selectedItems.has(item)"
+                            @update:model-value="toggleSelected(item)" />
+                </label>
 
-              <Flex class="px-2 item-body" align-center grow
-                    @click="state.editList && addItem(item)"
-                    @contextmenu.prevent="state.editList && removeItem(item)"
-                    @touchstart="() => { /* needed for mobile to show click effects */ }">
+                <Flex class="px-2 item-body" align-center grow
+                      @click="state.editList && addItem(item)"
+                      @contextmenu.prevent="state.editList && removeItem(item)"
+                      @touchstart="() => { /* needed for mobile to show click effects */ }">
 
-                <span class="label">{{ item.label }}</span>
-                <span class="weight" v-if="item.weight">
-                  {{ item.weight }}g
-                </span>
-                <span class="weight" v-else>&nbsp;</span>
-                <span class="notes" v-if="item.notes">{{ item.notes }}</span>
-                <span class="notes" v-else>&nbsp;</span>
+                  <span class="label">{{ item.label }}</span>
+                  <span class="weight" v-if="item.weight">
+                    {{ item.weight }}g
+                  </span>
+                  <span class="weight" v-else>&nbsp;</span>
+                  <span class="notes" v-if="item.notes">{{ item.notes }}</span>
+                  <span class="notes" v-else>&nbsp;</span>
+                </Flex>
+
+                <Button icon="a" severity="secondary" class="ml-2"
+                        @click="startEditItem(item)">
+                  <Icon :src="icon_edit" />
+                </Button>
               </Flex>
-
-              <Button icon="a" severity="secondary" class="ml-2"
-                      @click="startEditItem(item)">
-                <Icon :src="icon_edit" />
-              </Button>
-            </Flex>
+            </template>
           </template>
-        </template>
+        </Flex>
       </Flex>
 
       <Flex column style="flex: 0 0 60rem" class="gap-3 my-3">
@@ -176,10 +179,12 @@
       </Flex>
     </Flex>
 
-    <Dialog :visible="!!state.createItem" @update:visible="state.createItem = null"
+    <Dialog :visible="!!state.createItem"
+            @update:visible="state.createItem = null"
             header="Add Item" modal :dismissable-mask="false">
       <template v-if="state.createItem">
-        <ItemEditor :model-value="state.createItem" @update:model-value="saveItem" />
+        <ItemEditor :model-value="state.createItem"
+                    @update:model-value="saveItem" />
       </template>
     </Dialog>
 
@@ -190,13 +195,51 @@
                     @delete="deleteItem" />
       </template>
     </Dialog>
+
+    <Dialog :visible="state.inputQuickItem !== null"
+            @update:visible="state.inputQuickItem = null" modal
+            :dismissable-mask="false"
+            style="border: none; background: none; box-shadow: none;">
+      <template #container>
+        <Flex column align-center justify-start style="min-height: 36rem;">
+          <InputText autofocus class="quick-item"
+                     v-model="state.inputQuickItem"
+                     style="width: 30ch"
+                     @keydown="onQuickItemKeyDown" />
+
+          <template v-if="quickItemResults.length">
+            <Flex column class="quick-item-results pa-2 mt-3"
+                  style="width: 60rem">
+              <template v-for="item in quickItemResults">
+                <Flex class="px-2 py-1 item-body" align-center
+                      :class="{ active: item == state.inputQuickItemTarget }">
+                  <template v-if="state.editList">
+                    <span class="count">
+                      {{state.editList.items.find(i =>
+                        i.itemId == item.id)?.count ?? ''}}
+                    </span>
+                  </template>
+                  <span class="label">{{ item.label }}</span>
+                  <span class="weight" v-if="item.weight">
+                    {{ item.weight }}g
+                  </span>
+                  <span class="weight" v-else>&nbsp;</span>
+                  <span class="notes" v-if="item.notes">{{ item.notes }}</span>
+                  <span class="notes" v-else>&nbsp;</span>
+                </Flex>
+              </template>
+            </Flex>
+          </template>
+        </Flex>
+      </template>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { Button, Checkbox, Dialog, InputText, Menu, Select, Textarea, ToggleButton } from 'primevue';
 import type { MenuItem } from 'primevue/menuitem';
-import { computed, shallowReactive, useTemplateRef } from 'vue';
+import { computed, useTemplateRef, watchEffect } from 'vue';
 import { ADD_ITEM, assert, DELETE_ITEM, UPDATE_ITEM, type List, type Item, clone, ADD_LIST_ITEM, REMOVE_LIST_ITEM, ADD_LIST, DELETE_LIST } from 'packtrack-common';
 import ItemEditor from './ui/ItemEditor.vue';
 import { state } from './localStorage';
@@ -204,6 +247,50 @@ import { apply, markRestorePoint } from './driver';
 import { icon_add, icon_chevron_left, icon_close, icon_delete, icon_edit, icon_save, icon_visibility, icon_visibility_off } from './assets/symbols';
 import Flex from './ui/Flex.vue';
 import Icon from './ui/Icon.vue';
+
+const visibleItems = computed(() => Object.values(state.value.library.items)
+  .filter(i => state.value.showUsedItems || !state.value.editList || !state.value.editList.items.some(e => e.itemId == i.id)));
+
+const quickItemResults = computed(() => {
+  if (!state.value.inputQuickItem) return [];
+  const regex = new RegExp(state.value.inputQuickItem, 'gi');
+  const matches = Object.values(state.value.library.items)
+    .filter(i => {
+      const string = `${i.label} ${i.weight} ${i.notes} ${i.category}`;
+      return regex.test(string);
+    });
+
+  return matches.slice(0, 12);
+});
+
+watchEffect(() => {
+  if (quickItemResults.value.length == 0) {
+    state.value.inputQuickItemTarget = null;
+  } else if (!quickItemResults.value.includes(state.value.inputQuickItemTarget!)) {
+    state.value.inputQuickItemTarget = quickItemResults.value[0]!;
+  }
+});
+
+function onQuickItemKeyDown(e: KeyboardEvent) {
+  const index = quickItemResults.value.indexOf(state.value.inputQuickItemTarget!);
+  if (index != -1) {
+    if (e.key == 'ArrowUp') {
+      const nextIndex = index == 0 ? quickItemResults.value.length - 1 : index - 1;
+      state.value.inputQuickItemTarget = quickItemResults.value[nextIndex]!;
+      e.preventDefault();
+    } else if (e.key == 'ArrowDown') {
+      const nextIndex = (index + 1) % quickItemResults.value.length;
+      state.value.inputQuickItemTarget = quickItemResults.value[nextIndex]!;
+      e.preventDefault();
+    } else if (e.key == 'Enter') {
+      if (e.shiftKey) {
+        removeItem(state.value.inputQuickItemTarget!);
+      } else {
+        addItem(state.value.inputQuickItemTarget!);
+      }
+    }
+  }
+}
 
 const addListMenu = useTemplateRef('addListMenu');
 
@@ -291,9 +378,6 @@ const listCategories = computed(() => {
       return { name, items, weight };
     })
 });
-
-const visibleItems = computed(() => Object.values(state.value.library.items)
-  .filter(i => state.value.showUsedItems || !state.value.editList || !state.value.editList.items.some(e => e.itemId == i.id)));
 
 const categories = computed(() => {
   return [...new Set(visibleItems.value
@@ -408,31 +492,6 @@ h3 {
     transition: opacity 80ms ease-in-out;
   }
 
-  > .item-body {
-    min-height: 2rem;
-    // height: 2rem;
-    padding: 0 0.5rem;
-    border-radius: var(--p-border-radius-md);
-
-    > .count {
-      flex: 0 0 3ch;
-      text-align: right;
-      margin-right: 1ch;
-    }
-
-    > .label {
-      flex: 5 0 0;
-    }
-
-    > .weight {
-      flex: 2 0 0;
-    }
-
-    > .notes {
-      flex: 13 0 0;
-    }
-  }
-
   &.active > .item-body {
     @include interactive-list-item;
   }
@@ -448,6 +507,29 @@ h3 {
   }
 }
 
+.item-body {
+  min-height: 2rem;
+  border-radius: var(--p-border-radius-md);
+
+  > .count {
+    flex: 0 0 3ch;
+    text-align: right;
+    margin-right: 1ch;
+  }
+
+  > .label {
+    flex: 5 0 0;
+  }
+
+  > .weight {
+    flex: 2 0 0;
+  }
+
+  > .notes {
+    flex: 13 0 0;
+  }
+}
+
 .list {
   padding: 0.5rem 0.75rem;
   border-radius: var(--p-border-radius-md);
@@ -460,6 +542,21 @@ h3 {
 
   > .weight {
     flex: 3 0 0;
+  }
+}
+
+.quick-item {
+  font-size: 2rem;
+}
+
+.quick-item-results {
+  background-color: var(--background-color);
+  border-radius: var(--p-border-radius-md);
+
+  .item-body {
+    &.active {
+      background-color: var(--interactive-hover-color);
+    }
   }
 }
 </style>
