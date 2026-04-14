@@ -29,7 +29,7 @@ function newGlobalState(): GlobalState {
     editItem: null,
     createItem: null,
     selectedItems: new Set(),
-    inputQuickItem: '',
+    inputQuickItem: null,
     inputQuickItemTarget: null,
     showUsedItems: true,
     inputCategory: '',
