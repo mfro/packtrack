@@ -95,9 +95,8 @@
               <h2 style="flex: 1">{{ state.editList.label }}</h2>
             </template>
 
-            <ToggleButton v-model="state.listEditMode" style="flex: 0 0 auto">
+            <ToggleButton v-model="state.listEditMode" style="flex: 0 0 auto" size="small">
               <Icon :src="state.listEditMode ? icon_edit : icon_edit_off" />
-              Edit List
             </ToggleButton>
           </Flex>
 
