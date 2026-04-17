@@ -9,6 +9,7 @@ export interface GlobalState {
   editItem: Item | null,
   createItem: Item | null,
   selectedItems: Set<Item>,
+  listEditMode: boolean,
 
   inputQuickItem: string | null,
   inputQuickItemTarget: Item | null,
@@ -29,6 +30,7 @@ function newGlobalState(): GlobalState {
     editItem: null,
     createItem: null,
     selectedItems: new Set(),
+    listEditMode: false,
     inputQuickItem: null,
     inputQuickItemTarget: null,
     showUsedItems: true,
@@ -69,6 +71,10 @@ if (state.value.version < 2) {
 if (state.value.version < 3) {
   state.value.inputQuickItem = null;
   state.value.inputQuickItemTarget = null;
+}
+
+if (state.value.version < 4) {
+  state.value.listEditMode = false;
 }
 
 state.value.version = CURRENT_VERSION;

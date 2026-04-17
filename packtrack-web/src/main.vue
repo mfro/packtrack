@@ -80,39 +80,57 @@
 
       <Flex column style="flex: 0 0 60rem" class="gap-3 my-3">
         <template v-if="state.editList">
-          <Flex class="gap-3">
-            <Button type="button"
-                    @click="e => addListMenu?.toggle(e)">
-
-              <Icon :src="icon_add"
-                    style="margin: -10em 0" />
-              Include List
-            </Button>
-
-            <Menu ref="addListMenu" id="overlay_menu"
-                  :model="addListOptions"
-                  :popup="true" />
-
-            <Flex grow />
-
-            <Button @click="deleteList" severity="danger">
-              <Icon :src="icon_delete" />
-              Delete
-            </Button>
-          </Flex>
-
           <Flex class="gap-3" align-center>
             <Button @click="selectList(null)" icon="a" text rounded
-                    severity="secondary" style="flex: 0 0 auto;">
+                    severity="secondary"
+                    style="flex: 0 0 auto;">
               <Icon :src="icon_chevron_left" />
             </Button>
 
-            <!-- TODO: fix this direct modification -->
-            <InputText v-model="state.editList.label" fluid />
+            <template v-if="state.listEditMode">
+              <!-- TODO: fix this direct modification -->
+              <InputText v-model="state.editList.label" fluid />
+            </template>
+            <template v-else>
+              <h2 style="flex: 1">{{ state.editList.label }}</h2>
+            </template>
+
+            <ToggleButton v-model="state.listEditMode" style="flex: 0 0 auto">
+              <Icon :src="state.listEditMode ? icon_edit : icon_edit_off" />
+              Edit List
+            </ToggleButton>
           </Flex>
 
-          <!-- TODO: fix this direct modification -->
-          <Textarea v-model="state.editList.notes" auto-resize />
+          <template v-if="state.listEditMode">
+            <!-- TODO: fix this direct modification -->
+            <Textarea v-model="state.editList.notes" auto-resize />
+          </template>
+          <template v-else>
+            <div class="list-notes">{{ state.editList.notes }}</div>
+          </template>
+
+          <template v-if="state.listEditMode">
+            <Flex class="gap-3">
+              <Button type="button"
+                      @click="e => addListMenu?.toggle(e)">
+
+                <Icon :src="icon_add"
+                      style="margin: -10em 0" />
+                Include List
+              </Button>
+
+              <Menu ref="addListMenu" id="overlay_menu"
+                    :model="addListOptions"
+                    :popup="true" />
+
+              <Flex grow />
+
+              <Button @click="deleteList" severity="danger">
+                <Icon :src="icon_delete" />
+                Delete
+              </Button>
+            </Flex>
+          </template>
 
           <span>total: {{ listWeight }}g</span>
 
@@ -125,10 +143,11 @@
               </Flex>
 
               <template v-for="{ item, count } in category.items">
-                <Flex class="px-2 item active" align-center>
+                <Flex class="px-2 item" align-center
+                      :class="{ active: state.listEditMode }">
                   <Flex class="px-2 item-body" align-center grow
-                        @click="state.editList && addItem(item)"
-                        @contextmenu.prevent="state.editList && removeItem(item)"
+                        @click="state.listEditMode && addItem(item)"
+                        @contextmenu.prevent="state.listEditMode && removeItem(item)"
                         @touchstart="() => { /* needed for mobile to show click effects */ }">
 
                     <span class="count">{{ count }}</span>
@@ -138,7 +157,7 @@
                     </span>
                     <span class="weight" v-else>&nbsp;</span>
                     <span class="notes" v-if="item.notes">{{ item.notes
-                      }}</span>
+                    }}</span>
                     <span class="notes" v-else>&nbsp;</span>
                   </Flex>
 
@@ -244,7 +263,7 @@ import { ADD_ITEM, assert, DELETE_ITEM, UPDATE_ITEM, type List, type Item, clone
 import ItemEditor from './ui/ItemEditor.vue';
 import { state } from './localStorage';
 import { apply, markRestorePoint } from './driver';
-import { icon_add, icon_chevron_left, icon_close, icon_delete, icon_edit, icon_save, icon_visibility, icon_visibility_off } from './assets/symbols';
+import { icon_add, icon_chevron_left, icon_close, icon_delete, icon_edit, icon_edit_off, icon_save, icon_visibility, icon_visibility_off } from './assets/symbols';
 import Flex from './ui/Flex.vue';
 import Icon from './ui/Icon.vue';
 
@@ -543,6 +562,10 @@ h3 {
   > .weight {
     flex: 3 0 0;
   }
+}
+
+.list-notes {
+  white-space: pre;
 }
 
 .quick-item {
